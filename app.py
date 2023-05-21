@@ -1,7 +1,7 @@
 
 import sys
 from PyQt5 import QtWidgets
-from ui.MainWindow import MainWindow
+from utils.MainWindow import MainWindow
 
 class App(QtWidgets.QMainWindow):
     def __init__(self):

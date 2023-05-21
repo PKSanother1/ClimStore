@@ -1,2 +1,3 @@
 PyQt5
 Pyside2
+neo4j
