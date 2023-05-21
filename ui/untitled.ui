@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>888</width>
+    <height>563</height>
+   </rect>
+  </property>
+  <property name="font">
+   <font>
+    <family>URW Gothic</family>
+    <kerning>true</kerning>
+   </font>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">background-color: rgb(108, 136, 177);
+color: rgb(255, 255, 255);</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <widget class="QLabel" name="main_text">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>60</y>
+      <width>261</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>URW Gothic</family>
+      <pointsize>40</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+background-color: rgb(108, 136, 177);</string>
+    </property>
+    <property name="text">
+     <string>ClimStore</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="settings_btn">
+    <property name="geometry">
+     <rect>
+      <x>530</x>
+      <y>390</y>
+      <width>190</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>20</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Settings</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="data_btn">
+    <property name="geometry">
+     <rect>
+      <x>530</x>
+      <y>150</y>
+      <width>190</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>20</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Data</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="view_btn">
+    <property name="geometry">
+     <rect>
+      <x>530</x>
+      <y>230</y>
+      <width>190</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>20</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>View</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="calculate_btn">
+    <property name="geometry">
+     <rect>
+      <x>530</x>
+      <y>310</y>
+      <width>190</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>20</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Calculate</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="image_1">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>80</y>
+      <width>400</width>
+      <height>400</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="pixmap">
+     <pixmap>Pictures/earth.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <zorder>image_1</zorder>
+   <zorder>settings_btn</zorder>
+   <zorder>data_btn</zorder>
+   <zorder>view_btn</zorder>
+   <zorder>calculate_btn</zorder>
+   <zorder>main_text</zorder>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>888</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_about">
+    <property name="title">
+     <string>About</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menu_settings">
+    <property name="font">
+     <font>
+      <family>URW Gothic</family>
+     </font>
+    </property>
+    <property name="title">
+     <string>Settings</string>
+    </property>
+   </widget>
+   <widget class="Open" name="menu_open">
+    <property name="font">
+     <font>
+      <family>URW Gothic</family>
+     </font>
+    </property>
+    <property name="title">
+     <string>Open</string>
+    </property>
+    <addaction name="file_btn"/>
+    <addaction name="data_btn_2"/>
+   </widget>
+   <widget class="QMenu" name="menuSave">
+    <property name="title">
+     <string>Save</string>
+    </property>
+    <addaction name="save_btn"/>
+    <addaction name="saveAs_btn"/>
+   </widget>
+   <widget class="QMenu" name="menu_send">
+    <property name="title">
+     <string>Send</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menu_recieve">
+    <property name="title">
+     <string>Recieve</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menu_view">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="plot_action"/>
+   </widget>
+   <addaction name="menu_open"/>
+   <addaction name="menuSave"/>
+   <addaction name="menu_settings"/>
+   <addaction name="menu_send"/>
+   <addaction name="menu_recieve"/>
+   <addaction name="menu_view"/>
+   <addaction name="menu_about"/>
+  </widget>
+  <action name="file_btn">
+   <property name="text">
+    <string>File</string>
+   </property>
+  </action>
+  <action name="data_btn_2">
+   <property name="text">
+    <string>Data</string>
+   </property>
+  </action>
+  <action name="save_btn">
+   <property name="text">
+    <string>Save </string>
+   </property>
+  </action>
+  <action name="saveAs_btn">
+   <property name="text">
+    <string>Save as</string>
+   </property>
+  </action>
+  <action name="actionData_2">
+   <property name="text">
+    <string>Data</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>URW Gothic</family>
+    </font>
+   </property>
+  </action>
+  <action name="actionData_3">
+   <property name="text">
+    <string>Data</string>
+   </property>
+  </action>
+  <action name="plot_action">
+   <property name="text">
+    <string>Plot</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>Open</class>
+   <extends>QMenu</extends>
+   <header>open.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+ <designerdata>
+  <property name="gridDeltaX">
+   <number>10</number>
+  </property>
+  <property name="gridDeltaY">
+   <number>10</number>
+  </property>
+  <property name="gridSnapX">
+   <bool>true</bool>
+  </property>
+  <property name="gridSnapY">
+   <bool>true</bool>
+  </property>
+  <property name="gridVisible">
+   <bool>true</bool>
+  </property>
+ </designerdata>
+</ui>
