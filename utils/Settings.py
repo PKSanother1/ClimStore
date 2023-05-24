@@ -1,47 +1,48 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from configparser import ConfigParser
 
-class Settings(object):
+class Settings(QtWidgets.QDialog):
     def __init__(self):
+        super().__init__()
         self.config = ConfigParser()
         self.config.read('config.ini')
-    def setupUi(self, Settings):
-        Settings.setObjectName("Settings")
-        Settings.resize(281, 232)
-        Settings.setStyleSheet("background-color: rgb(108, 136, 177);\n"
-"color: rgb(255, 255, 255);")
-        self.address = QtWidgets.QLabel(Settings)
+
+        self.setObjectName("Settings")
+        self.resize(389, 224)
+        self.setStyleSheet("background-color: rgb(108, 136, 177);\n"
+                           "color: rgb(255, 255, 255);")
+        self.address = QtWidgets.QLabel(self)
         self.address.setGeometry(QtCore.QRect(10, 40, 61, 20))
         self.address.setAlignment(QtCore.Qt.AlignCenter)
         self.address.setObjectName("address")
-        self.address_text = QtWidgets.QLineEdit(Settings)
-        self.address_text.setGeometry(QtCore.QRect(100, 40, 151, 21))
+        self.address_text = QtWidgets.QLineEdit(self)
+        self.address_text.setGeometry(QtCore.QRect(100, 40, 270, 21))
         self.address_text.setObjectName("address_text")
-        self.port_text = QtWidgets.QLineEdit(Settings)
-        self.port_text.setGeometry(QtCore.QRect(100, 70, 151, 21))
+        self.port_text = QtWidgets.QLineEdit(self)
+        self.port_text.setGeometry(QtCore.QRect(100, 70, 270, 21))
         self.port_text.setObjectName("port_text")
-        self.port = QtWidgets.QLabel(Settings)
+        self.port = QtWidgets.QLabel(self)
         self.port.setGeometry(QtCore.QRect(10, 70, 31, 19))
         self.port.setAlignment(QtCore.Qt.AlignCenter)
         self.port.setObjectName("port")
-        self.login = QtWidgets.QLabel(Settings)
+        self.login = QtWidgets.QLabel(self)
         self.login.setGeometry(QtCore.QRect(10, 100, 40, 19))
         self.login.setAlignment(QtCore.Qt.AlignCenter)
         self.login.setObjectName("login")
-        self.login_text = QtWidgets.QLineEdit(Settings)
-        self.login_text.setGeometry(QtCore.QRect(100, 100, 151, 21))
+        self.login_text = QtWidgets.QLineEdit(self)
+        self.login_text.setGeometry(QtCore.QRect(100, 100, 270, 21))
         self.login_text.setObjectName("login_text")
-        self.password = QtWidgets.QLabel(Settings)
+        self.password = QtWidgets.QLabel(self)
         self.password.setGeometry(QtCore.QRect(10, 130, 71, 20))
         self.password.setAlignment(QtCore.Qt.AlignCenter)
         self.password.setObjectName("password")
-        self.password_text = QtWidgets.QLineEdit(Settings)
-        self.password_text.setGeometry(QtCore.QRect(100, 130, 151, 21))
+        self.password_text = QtWidgets.QLineEdit(self)
+        self.password_text.setGeometry(QtCore.QRect(100, 130, 270, 21))
         self.password_text.setObjectName("password_text")
-        self.save_stngs = QtWidgets.QPushButton(Settings)
-        self.save_stngs.setGeometry(QtCore.QRect(160, 180, 88, 27))
+        self.save_stngs = QtWidgets.QPushButton(self)
+        self.save_stngs.setGeometry(QtCore.QRect(280, 180, 88, 27))
         self.save_stngs.setObjectName("save_stngs")
-        Settings.setWindowTitle("Settings")
+        self.setWindowTitle("Settings")
         self.address.setText("Address:")
         self.port.setText("Port:")
         self.login.setText("Login:")
@@ -62,6 +63,9 @@ class Settings(object):
         # Connect Save button to save_settings function
         self.save_stngs.clicked.connect(self.save_settings)
 
+    def open_dialog(self):
+        self.exec_()
+
     def save_settings(self):
         # Get values from UI
         address = self.address_text.text()
@@ -75,6 +79,7 @@ class Settings(object):
         self.set_setting('Connection', 'Login', login)
         self.set_setting('Connection', 'Password', password)
         self.save_config()
+        self.close()
 
     def get_setting(self, section, option):
         if self.config.has_option(section, option):

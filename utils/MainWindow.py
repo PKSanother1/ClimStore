@@ -1,12 +1,16 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import QThread, QObject, pyqtSignal
+from PyQt5.QtWidgets import QMessageBox, QFileDialog
 from utils.About import About
 from utils.Settings import Settings
+from utils.DataWindow import DataWindow
 import neo4j
 from neo4j import GraphDatabase
 import logging
 import sys
-
+import json
+import os
+import LoadData
 # Создание логгера
 logger = logging.getLogger('connection_logger')
 logger.setLevel(logging.INFO)
@@ -21,6 +25,7 @@ handler.setFormatter(formatter)
 
 # Добавление обработчика в логгер
 logger.addHandler(handler)
+
 
 class MainWindow(object):
     def setupUi(self, MainWindow):
@@ -52,38 +57,47 @@ class MainWindow(object):
         self.MainWindow_text.setAlignment(QtCore.Qt.AlignCenter)
         self.MainWindow_text.setObjectName("MainWindow_text")
 
-        self.settings_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.settings_btn.setGeometry(QtCore.QRect(530, 390, 190, 51))
-        font = QtGui.QFont()
-        font.setPointSize(20)
-        self.settings_btn.setFont(font)
-        self.settings_btn.setObjectName("settings_btn")
-
         self.data_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.data_btn.setGeometry(QtCore.QRect(530, 150, 190, 51))
+        self.data_btn.setGeometry(QtCore.QRect(530, 230, 190, 51))
         font = QtGui.QFont()
         font.setPointSize(20)
         self.data_btn.setFont(font)
         self.data_btn.setObjectName("data_btn")
+        self.data_btn.clicked.connect(self.open_data_window)
+
+        self.load_btn = QtWidgets.QPushButton(self.centralwidget)
+        self.load_btn.setGeometry(QtCore.QRect(530, 150, 190, 51))
+        font = QtGui.QFont()
+        font.setPointSize(20)
+        self.load_btn.setFont(font)
+        self.load_btn.setObjectName("load_btn")
+        self.load_btn.clicked.connect(self.load_btn_clicked)
 
         self.view_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.view_btn.setGeometry(QtCore.QRect(530, 230, 190, 51))
+        self.view_btn.setGeometry(QtCore.QRect(530, 310, 190, 51))
         font = QtGui.QFont()
         font.setPointSize(20)
         self.view_btn.setFont(font)
         self.view_btn.setObjectName("view_btn")
 
         self.calculate_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.calculate_btn.setGeometry(QtCore.QRect(530, 310, 190, 51))
+        self.calculate_btn.setGeometry(QtCore.QRect(530, 390, 190, 51))
         font = QtGui.QFont()
         font.setPointSize(20)
         self.calculate_btn.setFont(font)
         self.calculate_btn.setObjectName("calculate_btn")
 
+        self.settings_btn = QtWidgets.QPushButton(self.centralwidget)
+        self.settings_btn.setGeometry(QtCore.QRect(530, 470, 190, 51))
+        font = QtGui.QFont()
+        font.setPointSize(20)
+        self.settings_btn.setFont(font)
+        self.settings_btn.setObjectName("settings_btn")
+
         self.image_1 = QtWidgets.QLabel(self.centralwidget)
         self.image_1.setGeometry(QtCore.QRect(50, 80, 400, 400))
         self.image_1.setText("")
-        self.image_1.setPixmap(QtGui.QPixmap("/home/fda/Pictures/earth.png"))
+        self.image_1.setPixmap(QtGui.QPixmap("assets/earth.png"))
         self.image_1.setScaledContents(True)
         self.image_1.setObjectName("image_1")
         self.image_1.raise_()
@@ -196,6 +210,7 @@ class MainWindow(object):
         self.save_btn.setText("Save")
         self.saveAs_btn.setText("Save as")
         self.actionData_2.setText("Data")
+        self.load_btn.setText("Load")
         self.actionData_3.setText("Data")
         self.plot_action.setText("Plot")
         self.neo4j_switch = QtWidgets.QPushButton(self.centralwidget)
@@ -229,7 +244,7 @@ class MainWindow(object):
         # Установка соединения с базой данных Neo4j
         try:
             logger.info(f"Connecting to Neo4j - Address: {address}, Login: {login}")
-            self.driver = GraphDatabase.driver(f"bolt://{address}:{port}", auth=(login, password), connection_timeout=10)
+            self.driver = GraphDatabase.driver(f"neo4j+s://{address}", auth=(login, password), connection_timeout=10)
             self.session = self.driver.session()
             if self.is_neo4j_connected():
                 print("Connected to Neo4j")
@@ -250,16 +265,13 @@ class MainWindow(object):
         print('Disconnected')
 
     def open_settings(self):
-        settings_dialog = QtWidgets.QDialog()
-        settings_ui = Settings()
-        settings_ui.setupUi(settings_dialog)
-        settings_dialog.exec_()
+        settings_win = Settings()
+        settings_win.open_dialog()
+
 
     def show_about(self):
-        about_dialog = QtWidgets.QDialog()
         about_ui = About()
-        about_ui.setupUi(about_dialog)
-        about_dialog.exec_()
+        about_ui.open_dialog()
 
     def show_error_message(self, message):
         error_box = QMessageBox()
@@ -278,3 +290,73 @@ class MainWindow(object):
             return True
         except Exception:
             return False
+    
+    def open_data_window(self):
+        # Проверяем, подключены ли мы к Neo4j
+        if self.neo4j_switch.isChecked():
+            # Проверяем, что есть активное соединение с Neo4j
+            if self.is_neo4j_connected():
+                # Создаем экземпляр класса DataWindow
+                data_window = DataWindow(self.session)
+
+                # Открываем окно DataWindow
+                data_window.exec_()
+            else:
+                # Предупреждаем пользователя, что он должен сначала подключиться к Neo4j
+                QMessageBox.information(self.centralwidget, "Connection Required", "Please connect to Neo4j first.")
+        else:
+            # Предупреждаем пользователя, что он должен сначала подключиться к Neo4j
+            QMessageBox.information(self.centralwidget, "Connection Required", "Please connect to Neo4j first.")
+
+    def load_btn_clicked(self):
+        if self.neo4j_switch.isChecked():
+            if self.is_neo4j_connected():
+                file_dialog = QFileDialog()
+                file_path, _ = file_dialog.getOpenFileName(None, "Select File", "", "Text Files (*.txt)")
+
+                if file_path:
+                    self.load_data_worker = LoadData(file_path)
+                    self.load_data_worker.finished.connect(self.data_loaded)
+                    self.load_data_worker.error.connect(self.data_load_failed)
+
+                    self.thread = QThread()
+                    self.load_data_worker.moveToThread(self.thread)
+
+                    self.thread.started.connect(self.load_data_worker.run)
+                    self.thread.finished.connect(self.thread.deleteLater)
+
+                    self.thread.start()
+            else:
+                # Предупреждаем пользователя, что он должен сначала подключиться к Neo4j
+                QMessageBox.information(self.centralwidget, "Connection Required", "Please connect to Neo4j first.")
+        else:
+            # Предупреждаем пользователя, что он должен сначала подключиться к Neo4j
+            QMessageBox.information(self.centralwidget, "Connection Required", "Please connect to Neo4j first.")
+
+    def data_loaded(self):
+        QMessageBox.information(self.centralwidget, "Data Loaded", "Data loaded and imported into Neo4j successfully.")
+
+    def data_load_failed(self, error):
+        QMessageBox.critical(self.centralwidget, "Error", f"Failed to load data: {error}")
+    def import_data_to_neo4j(self, json_data):
+        try:
+            # Check if connected to Neo4j
+            if self.is_neo4j_connected():
+                # Parse the JSON data
+                data = json.loads(json_data)
+
+                # Construct the Cypher query to import the data
+                query = "CREATE "
+                for i, entry in enumerate(data):
+                    query += "(n" + str(i) + ":" + "Station" + " { "
+                    for key, value in entry.items():
+                        query += key.replace(" ", "_") + ": '" + value + "', "
+                    query = query[:-2] + " }), "
+                query = query[:-2]
+
+                # Execute the Cypher query
+                self.session.run(query)
+        except Exception as e:
+            error_message = "Failed to import data to Neo4j: " + str(e)
+            logger.error(error_message)
+            self.show_error_message(error_message)
