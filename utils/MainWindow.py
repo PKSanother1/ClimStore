@@ -10,7 +10,7 @@ import logging
 import sys
 import json
 import os
-import LoadData
+
 # Создание логгера
 logger = logging.getLogger('connection_logger')
 logger.setLevel(logging.INFO)
@@ -25,6 +25,65 @@ handler.setFormatter(formatter)
 
 # Добавление обработчика в логгер
 logger.addHandler(handler)
+
+class LoadDataWorker(QThread):
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+
+    def __init__(self, file_path):
+        super().__init__()
+        self.file_path = file_path
+
+    def run(self):
+        try:
+            # Read the txt file
+            with open(self.file_path, 'r') as file:
+                lines = file.readlines()
+
+            # Prepare the list of data dictionaries
+            data = []
+            for line in lines:
+                values = line.split()
+                if len(values) == 17:  # Check if the line has enough values
+                    entry = {
+                        'Station Synoptic Index': values[0],
+                        'Year in Greenwich': values[1],
+                        'Month in Greenwich': values[2],
+                        'Day in Greenwich': values[3],
+                        'Time in Greenwich': values[4],
+                        'Year from Source (local)': values[5],
+                        'Month from Source (local)': values[6],
+                        'Day from Source (local)': values[7],
+                        'Time from Source (local)': values[8],
+                        'Local Time': values[9],
+                        'Average Wind Speed': values[10],
+                        'Maximum Wind Speed': values[11],
+                        'Precipitation Sum': values[12],
+                        'Min. Soil Surface Temperature between Time Intervals': values[13],
+                        'Max. Soil Surface Temperature between Time Intervals': values[14],
+                        'Soil Surface Temperature at Maximum Thermistor Depth': values[15],
+                        'Dew Point Temperature': values[16]
+                    }
+                    data.append(entry)
+
+            # Convert the data to JSON string
+            json_data = json.dumps(data)
+            main_win = MainWindow()
+            # Import the JSON data into Neo4j
+            main_win.import_data_to_neo4j(json_data)
+
+            # Save the JSON data to a file in the "data" folder
+            # file_name = os.path.basename(self.file_path)
+            save_path = os.path.join("data", "data3" + ".json")
+            with open(save_path, 'w') as json_file:
+                json_file.write(json_data)
+
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))
+    
+
+
 
 
 class MainWindow(object):
@@ -222,7 +281,6 @@ class MainWindow(object):
         self.menu_settings.triggered.connect(self.open_settings)
         self.menu_about.triggered.connect(self.show_about)
         self.neo4j_switch.clicked.connect(self.toggle_neo4j_connection)
-
     def toggle_neo4j_connection(self):
         if self.neo4j_switch.isChecked():
             if self.connect_to_neo4j():
@@ -238,7 +296,6 @@ class MainWindow(object):
         # Установка соединения с базой данных Neo4j
         settings_win = Settings()
         address = settings_win.get_setting('Connection', 'Address')
-        port = settings_win.get_setting('Connection', 'Port')
         login = settings_win.get_setting('Connection', 'Login')
         password = settings_win.get_setting('Connection', 'Password')
         # Установка соединения с базой данных Neo4j
@@ -315,7 +372,7 @@ class MainWindow(object):
                 file_path, _ = file_dialog.getOpenFileName(None, "Select File", "", "Text Files (*.txt)")
 
                 if file_path:
-                    self.load_data_worker = LoadData(file_path)
+                    self.load_data_worker = LoadDataWorker(file_path)
                     self.load_data_worker.finished.connect(self.data_loaded)
                     self.load_data_worker.error.connect(self.data_load_failed)
 
@@ -343,19 +400,24 @@ class MainWindow(object):
             # Check if connected to Neo4j
             if self.is_neo4j_connected():
                 # Parse the JSON data
-                data = json.loads(json_data)
-
+                # data = json.loads(json_data)
+                driver = GraphDatabase.driver("neo4j+s://ca6a9e12.databases.neo4j.io", auth=("neo4j", "uCi5I8XGEiPniaQmgC02YQUL8C5RwpOF3BHimxATRmg"))
+                session = driver.session()
                 # Construct the Cypher query to import the data
-                query = "CREATE "
-                for i, entry in enumerate(data):
-                    query += "(n" + str(i) + ":" + "Station" + " { "
-                    for key, value in entry.items():
-                        query += key.replace(" ", "_") + ": '" + value + "', "
-                    query = query[:-2] + " }), "
-                query = query[:-2]
+                for entry in json_data:
+            # Create a node for each entry
+                    session.run("CREATE (entry:Entry {synopticIndex: $synopticIndex, year: $year, month: $month, day: $day})",
+                                synopticIndex=entry['Station Synoptic Index'],
+                                year=entry['Year in Greenwich'],
+                                month=entry['Month in Greenwich'],
+                                day=entry['Day in Greenwich'])
 
-                # Execute the Cypher query
-                self.session.run(query)
+                    # Create relationships between nodes based on your data model
+
+                # Close the Neo4j session and driver
+                # self.session.close()
+                # self.driver.close()
+
         except Exception as e:
             error_message = "Failed to import data to Neo4j: " + str(e)
             logger.error(error_message)
