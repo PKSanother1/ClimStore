@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QDialog,QApplication,QProgressDialog,QHBoxLayout,QVB
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 import json
+import os 
 from utils.Settings import Settings
 from neo4j import GraphDatabase
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
@@ -31,20 +32,20 @@ class Load(QDialog):
         self.table_widget.resizeColumnsToContents()
         # Создание кнопок
         self.btn_select_file = QPushButton('Choose a file')
-        self.btn_convert_to_json = QPushButton('Convert to JSON')
+        # self.btn_convert_to_json = QPushButton('Convert to JSON')
         self.btn_send_to_database = QPushButton('Send to DB')
         self.btn_show_table = QPushButton('Calculate')
         self.btn_save_excel = QPushButton('Save Excel')
 
        # Назначение обработчиков событий для кнопок
         self.btn_select_file.clicked.connect(self.select_file)
-        self.btn_convert_to_json.clicked.connect(self.convert_to_json)
+        # self.btn_convert_to_json.clicked.connect(self.convert_to_json)
         self.btn_send_to_database.clicked.connect(self.send_to_database)
         self.btn_show_table.clicked.connect(self.open_data_window)
         # Создание компоновщика для кнопок
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.btn_select_file)
-        button_layout.addWidget(self.btn_convert_to_json)
+        # button_layout.addWidget(self.btn_convert_to_json)
         button_layout.addWidget(self.btn_send_to_database)
         button_layout.addWidget(self.btn_show_table)
 
@@ -68,11 +69,36 @@ class Load(QDialog):
         
         # Переменная для хранения данных
         self.data = []
+    @staticmethod
+    def save_data_as_json(data, directory, filename):
+        # Формируем полный путь к файлу
+        file_path = os.path.join(directory, filename)
         
+        # Проверяем, существует ли файл
+        if os.path.exists(file_path):
+            # Если файл существует, генерируем новое имя
+            base_name, ext = os.path.splitext(filename)
+            new_filename = base_name + "_new" + ext
+            file_path = os.path.join(directory, new_filename)
+        
+        # Конвертируем данные в формат JSON
+        json_data = json.dumps(data)
+        
+        try:
+            # Открываем файл для записи
+            with open(file_path, 'w') as file:
+                # Записываем данные в файл
+                file.write(json_data)
+            
+            print(f"Данные успешно сохранены в файле {file_path}")
+        
+        except IOError:
+            print(f"Ошибка при сохранении данных в файл {file_path}")
+
     def select_file(self):
         # Открытие диалога выбора файла
         file_path, _ = QFileDialog.getOpenFileName(self, 'Выберите файл', '', 'Text files (*.txt)')
-        
+
         if file_path:
             try:
                 # Чтение данных из файла
@@ -94,23 +120,62 @@ class Load(QDialog):
                             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                             self.table_widget.setItem(row, column, item)
                         self.data.append(values)
-                
+
+                # Конвертация данных в формат JSON
+                self.convert_to_json(file_path)
+
                 QMessageBox.information(self, 'Успех', 'Файл успешно загружен.')
             except Exception as e:
                 QMessageBox.critical(self, 'Ошибка', f'Ошибка при чтении файла: {str(e)}')
-    
-    def convert_to_json(self):
+
+    def convert_to_json(self, file_path):
         if not self.data:
             QMessageBox.warning(self, 'Предупреждение', 'Нет данных для конвертации.')
             return
-        
+
         try:
-            # Конвертация данных в формат JSON
-            json_data = json.dumps(self.data)
-            QMessageBox.information(self, 'Успех', 'Данные успешно конвертированы в JSON.')
+            # Получение имени файла без пути и расширения
+            filename = os.path.splitext(os.path.basename(file_path))[0]
+
+            # Получение директории файла
+            directory = os.path.dirname(file_path)
+
+            # Получение заголовков столбцов из таблицы
+            headers = [self.table_widget.horizontalHeaderItem(column).text() for column in range(self.table_widget.columnCount())]
+
+            # Создание списка для хранения сконвертированных данных
+            converted_data = []
+
+            # Обработка каждой строки данных
+            for values in self.data:
+                row_data = {}
+
+                # Обработка каждого столбца
+                for column, value in enumerate(values):
+                    header = headers[column]
+                    row_data[header] = value
+
+                converted_data.append(row_data)
+
+            # Формирование полного пути к файлу
+            file_path = os.path.join(directory, filename + '.json')
+
+            # Проверка наличия файла
+            if os.path.exists(file_path):
+                # Если файл существует, генерируем новое имя
+                base_name, ext = os.path.splitext(filename)
+                new_filename = base_name + "_new" + ext
+                file_path = os.path.join(directory, new_filename)
+
+            # Сохранение данных в формате JSON
+            with open(file_path, 'w') as file:
+                json.dump(converted_data, file, indent=4)
+
+            QMessageBox.information(self, 'Успех', f'Данные успешно конвертированы и сохранены в файле:\n{file_path}')
+
         except Exception as e:
             QMessageBox.critical(self, 'Ошибка', f'Ошибка при конвертации в JSON: {str(e)}')
-    
+            
     def send_to_database(self):
         # Получение настроек подключения к базе данных
         settings_win = Settings()

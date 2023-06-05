@@ -31,7 +31,7 @@ class About(QtWidgets.QDialog):
         self.label_3.setObjectName("label_3")
 
         self.label.setText("ClimStore")
-        self.label_2.setText("version: 0.01")
+        self.label_2.setText("version: 1.0.0")
         self.label_3.setText("Authorized: Fedorov Juluur")
     def open_dialog(self):
         self.exec_()
