@@ -3,13 +3,12 @@ from PyQt5.QtCore import QThread, QObject, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox, QFileDialog
 from utils.About import About
 from utils.Settings import Settings
-from utils.DataWindow import DataWindow
-import neo4j
+from utils.LoadData import Load, DataWindow
+from utils.Сalculate import FireSafetyCalculator
 from neo4j import GraphDatabase
 import logging
 import sys
-import json
-import os
+
 
 # Создание логгера
 logger = logging.getLogger('connection_logger')
@@ -25,66 +24,6 @@ handler.setFormatter(formatter)
 
 # Добавление обработчика в логгер
 logger.addHandler(handler)
-
-class LoadDataWorker(QThread):
-    finished = pyqtSignal()
-    error = pyqtSignal(str)
-
-    def __init__(self, file_path):
-        super().__init__()
-        self.file_path = file_path
-
-    def run(self):
-        try:
-            # Read the txt file
-            with open(self.file_path, 'r') as file:
-                lines = file.readlines()
-
-            # Prepare the list of data dictionaries
-            data = []
-            for line in lines:
-                values = line.split()
-                if len(values) == 17:  # Check if the line has enough values
-                    entry = {
-                        'Station Synoptic Index': values[0],
-                        'Year in Greenwich': values[1],
-                        'Month in Greenwich': values[2],
-                        'Day in Greenwich': values[3],
-                        'Time in Greenwich': values[4],
-                        'Year from Source (local)': values[5],
-                        'Month from Source (local)': values[6],
-                        'Day from Source (local)': values[7],
-                        'Time from Source (local)': values[8],
-                        'Local Time': values[9],
-                        'Average Wind Speed': values[10],
-                        'Maximum Wind Speed': values[11],
-                        'Precipitation Sum': values[12],
-                        'Min. Soil Surface Temperature between Time Intervals': values[13],
-                        'Max. Soil Surface Temperature between Time Intervals': values[14],
-                        'Soil Surface Temperature at Maximum Thermistor Depth': values[15],
-                        'Dew Point Temperature': values[16]
-                    }
-                    data.append(entry)
-
-            # Convert the data to JSON string
-            json_data = json.dumps(data)
-            main_win = MainWindow()
-            # Import the JSON data into Neo4j
-            main_win.import_data_to_neo4j(json_data)
-
-            # Save the JSON data to a file in the "data" folder
-            # file_name = os.path.basename(self.file_path)
-            save_path = os.path.join("data", "data3" + ".json")
-            with open(save_path, 'w') as json_file:
-                json_file.write(json_data)
-
-            self.finished.emit()
-        except Exception as e:
-            self.error.emit(str(e))
-    
-
-
-
 
 class MainWindow(object):
     def setupUi(self, MainWindow):
@@ -116,13 +55,6 @@ class MainWindow(object):
         self.MainWindow_text.setAlignment(QtCore.Qt.AlignCenter)
         self.MainWindow_text.setObjectName("MainWindow_text")
 
-        self.data_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.data_btn.setGeometry(QtCore.QRect(530, 230, 190, 51))
-        font = QtGui.QFont()
-        font.setPointSize(20)
-        self.data_btn.setFont(font)
-        self.data_btn.setObjectName("data_btn")
-        self.data_btn.clicked.connect(self.open_data_window)
 
         self.load_btn = QtWidgets.QPushButton(self.centralwidget)
         self.load_btn.setGeometry(QtCore.QRect(530, 150, 190, 51))
@@ -130,24 +62,24 @@ class MainWindow(object):
         font.setPointSize(20)
         self.load_btn.setFont(font)
         self.load_btn.setObjectName("load_btn")
-        self.load_btn.clicked.connect(self.load_btn_clicked)
+        
 
         self.view_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.view_btn.setGeometry(QtCore.QRect(530, 310, 190, 51))
+        self.view_btn.setGeometry(QtCore.QRect(530, 230, 190, 51))
         font = QtGui.QFont()
         font.setPointSize(20)
         self.view_btn.setFont(font)
         self.view_btn.setObjectName("view_btn")
 
         self.calculate_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.calculate_btn.setGeometry(QtCore.QRect(530, 390, 190, 51))
+        self.calculate_btn.setGeometry(QtCore.QRect(530, 310, 190, 51))
         font = QtGui.QFont()
         font.setPointSize(20)
         self.calculate_btn.setFont(font)
         self.calculate_btn.setObjectName("calculate_btn")
 
         self.settings_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.settings_btn.setGeometry(QtCore.QRect(530, 470, 190, 51))
+        self.settings_btn.setGeometry(QtCore.QRect(530, 390, 190, 51))
         font = QtGui.QFont()
         font.setPointSize(20)
         self.settings_btn.setFont(font)
@@ -161,7 +93,7 @@ class MainWindow(object):
         self.image_1.setObjectName("image_1")
         self.image_1.raise_()
         self.settings_btn.raise_()
-        self.data_btn.raise_()
+        # self.data_btn.raise_()
         self.view_btn.raise_()
         self.calculate_btn.raise_()
         self.MainWindow_text.raise_()
@@ -190,15 +122,6 @@ class MainWindow(object):
 
         self.menuSave = QtWidgets.QMenu(self.menubar)
         self.menuSave.setObjectName("menuSave")
-
-        self.menu_send = QtWidgets.QMenu(self.menubar)
-        self.menu_send.setObjectName("menu_send")
-
-        self.menu_recieve = QtWidgets.QMenu(self.menubar)
-        self.menu_recieve.setObjectName("menu_recieve")
-
-        self.menu_view = QtWidgets.QMenu(self.menubar)
-        self.menu_view.setObjectName("menu_view")
 
         # Установка строки меню в главном окне
         MainWindow.setMenuBar(self.menubar)
@@ -241,29 +164,22 @@ class MainWindow(object):
         self.menu_open.addAction(self.data_btn_2)
         self.menuSave.addAction(self.save_btn)
         self.menuSave.addAction(self.saveAs_btn)
-        self.menu_view.addAction(self.plot_action)
 
         self.menubar.addAction(self.menu_open.menuAction())
         self.menubar.addAction(self.menuSave.menuAction())
         self.menubar.addAction(self.menu_settings.menuAction())
-        self.menubar.addAction(self.menu_send.menuAction())
-        self.menubar.addAction(self.menu_recieve.menuAction())
-        self.menubar.addAction(self.menu_view.menuAction())
         self.menubar.addAction(self.menu_about.menuAction())
 
         MainWindow.setWindowTitle("MainWindow")
         self.MainWindow_text.setText("ClimStore")
         self.settings_btn.setText("Settings")
-        self.data_btn.setText("Data")
+        # self.data_btn.setText("Data")
         self.view_btn.setText("View")
         self.calculate_btn.setText("Calculate")
         self.menu_about.setTitle("About")
         self.menu_settings.setTitle("Settings")
         self.menu_open.setTitle("Open")
         self.menuSave.setTitle("Save")
-        self.menu_send.setTitle("Send")
-        self.menu_recieve.setTitle("Recieve")
-        self.menu_view.setTitle("View")
         self.file_btn.setText("File")
         self.data_btn_2.setText("Data")
         self.save_btn.setText("Save")
@@ -277,6 +193,8 @@ class MainWindow(object):
         self.neo4j_switch.setCheckable(True)
         self.neo4j_switch.setObjectName("neo4j_switch")
         self.neo4j_switch.setText("Connect")
+        self.load_btn.clicked.connect(self.load_btn_clicked)
+        self.calculate_btn.clicked.connect(self.open_calculation_window)
         self.settings_btn.clicked.connect(self.open_settings)
         self.menu_settings.triggered.connect(self.open_settings)
         self.menu_about.triggered.connect(self.show_about)
@@ -291,6 +209,9 @@ class MainWindow(object):
         else:
             self.disconnect_from_neo4j()
             self.neo4j_switch.setText("Connect")
+    def open_calculation_window(self):
+        self.calculation_window = FireSafetyCalculator()
+        self.calculation_window.show()
 
     def connect_to_neo4j(self):
         # Установка соединения с базой данных Neo4j
@@ -347,78 +268,14 @@ class MainWindow(object):
             return True
         except Exception:
             return False
-    
-    def open_data_window(self):
-        # Проверяем, подключены ли мы к Neo4j
-        if self.neo4j_switch.isChecked():
-            # Проверяем, что есть активное соединение с Neo4j
-            if self.is_neo4j_connected():
-                # Создаем экземпляр класса DataWindow
-                data_window = DataWindow(self.session)
-
-                # Открываем окно DataWindow
-                data_window.exec_()
-            else:
-                # Предупреждаем пользователя, что он должен сначала подключиться к Neo4j
-                QMessageBox.information(self.centralwidget, "Connection Required", "Please connect to Neo4j first.")
-        else:
-            # Предупреждаем пользователя, что он должен сначала подключиться к Neo4j
-            QMessageBox.information(self.centralwidget, "Connection Required", "Please connect to Neo4j first.")
-
     def load_btn_clicked(self):
         if self.neo4j_switch.isChecked():
             if self.is_neo4j_connected():
-                file_dialog = QFileDialog()
-                file_path, _ = file_dialog.getOpenFileName(None, "Select File", "", "Text Files (*.txt)")
-
-                if file_path:
-                    self.load_data_worker = LoadDataWorker(file_path)
-                    self.load_data_worker.finished.connect(self.data_loaded)
-                    self.load_data_worker.error.connect(self.data_load_failed)
-
-                    self.thread = QThread()
-                    self.load_data_worker.moveToThread(self.thread)
-
-                    self.thread.started.connect(self.load_data_worker.run)
-                    self.thread.finished.connect(self.thread.deleteLater)
-
-                    self.thread.start()
+                self.load_window = Load()
+                self.load_window.show()
             else:
                 # Предупреждаем пользователя, что он должен сначала подключиться к Neo4j
                 QMessageBox.information(self.centralwidget, "Connection Required", "Please connect to Neo4j first.")
         else:
             # Предупреждаем пользователя, что он должен сначала подключиться к Neo4j
             QMessageBox.information(self.centralwidget, "Connection Required", "Please connect to Neo4j first.")
-
-    def data_loaded(self):
-        QMessageBox.information(self.centralwidget, "Data Loaded", "Data loaded and imported into Neo4j successfully.")
-
-    def data_load_failed(self, error):
-        QMessageBox.critical(self.centralwidget, "Error", f"Failed to load data: {error}")
-    def import_data_to_neo4j(self, json_data):
-        try:
-            # Check if connected to Neo4j
-            if self.is_neo4j_connected():
-                # Parse the JSON data
-                # data = json.loads(json_data)
-                driver = GraphDatabase.driver("neo4j+s://ca6a9e12.databases.neo4j.io", auth=("neo4j", "uCi5I8XGEiPniaQmgC02YQUL8C5RwpOF3BHimxATRmg"))
-                session = driver.session()
-                # Construct the Cypher query to import the data
-                for entry in json_data:
-            # Create a node for each entry
-                    session.run("CREATE (entry:Entry {synopticIndex: $synopticIndex, year: $year, month: $month, day: $day})",
-                                synopticIndex=entry['Station Synoptic Index'],
-                                year=entry['Year in Greenwich'],
-                                month=entry['Month in Greenwich'],
-                                day=entry['Day in Greenwich'])
-
-                    # Create relationships between nodes based on your data model
-
-                # Close the Neo4j session and driver
-                # self.session.close()
-                # self.driver.close()
-
-        except Exception as e:
-            error_message = "Failed to import data to Neo4j: " + str(e)
-            logger.error(error_message)
-            self.show_error_message(error_message)
